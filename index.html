@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
     <title>小红书（纯搜索功能版）</title>
     <style>
       :root {
@@ -34,6 +35,7 @@
         background:
           radial-gradient(circle at 18% 14%, rgba(255, 36, 66, 0.12), transparent 26rem),
           linear-gradient(180deg, #fff 0%, var(--page) 100%);
+        -webkit-text-size-adjust: 100%;
       }
 
       main {
@@ -288,7 +290,7 @@
 
       @media (max-width: 520px) {
         main {
-          padding-top: 15vh;
+          padding: 12vh 14px 88px;
         }
 
         .brand {
@@ -362,7 +364,14 @@
       <section class="search-shell" aria-label="小红书搜索">
         <h1 class="brand">小红书</h1>
         <p class="search-prompt">你现在要搜什么？</p>
-        <form class="search-form" id="searchForm" autocomplete="off">
+        <form
+          class="search-form"
+          id="searchForm"
+          action="https://www.xiaohongshu.com/search_result/"
+          method="get"
+          accept-charset="UTF-8"
+          autocomplete="off"
+        >
           <input
             class="search-input"
             id="searchInput"
@@ -372,6 +381,8 @@
             aria-label="搜索小红书"
             autofocus
           />
+          <input type="hidden" name="type" value="51" />
+          <input type="hidden" name="source" value="web_explore_feed" />
           <button class="search-button" type="submit" aria-label="搜索">搜索</button>
         </form>
         <section class="history" aria-label="搜索记录">
@@ -410,9 +421,10 @@
       const maxHistoryItems = 12;
       const searchUrlConfig = {
         origin: "https://www.xiaohongshu.com",
-        pathname: "/search_result",
+        pathname: "/search_result/",
         keywordParam: "keyword",
         fixedParams: {
+          type: "51",
           source: "web_explore_feed",
         },
       };
@@ -420,8 +432,13 @@
 
       function makeSearchUrl(keyword) {
         const url = new URL(searchUrlConfig.pathname, searchUrlConfig.origin);
-        const params = new URLSearchParams(searchUrlConfig.fixedParams);
+        const params = new URLSearchParams();
         params.set(searchUrlConfig.keywordParam, keyword);
+
+        Object.entries(searchUrlConfig.fixedParams).forEach(([key, value]) => {
+          params.set(key, value);
+        });
+
         url.search = params.toString();
 
         return url.toString();
@@ -472,7 +489,7 @@
         }
 
         saveSearch(normalized);
-        window.location.href = makeSearchUrl(normalized);
+        window.location.assign(makeSearchUrl(normalized));
       }
 
       function createHistoryChip(keyword) {
@@ -551,14 +568,26 @@
       }
 
       form.addEventListener("submit", (event) => {
-        event.preventDefault();
-        search(input.value);
+        const normalized = input.value.trim();
+
+        if (!normalized) {
+          event.preventDefault();
+          input.focus();
+          return;
+        }
+
+        input.value = normalized;
+        saveSearch(normalized);
       });
 
       input.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.isComposing) {
-          event.preventDefault();
-          search(input.value);
+          const normalized = input.value.trim();
+
+          if (!normalized) {
+            event.preventDefault();
+            input.focus();
+          }
         }
       });
 
