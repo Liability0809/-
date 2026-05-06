@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>小红书（纯搜索功能版）</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --red: #ff2442;
+        --red-dark: #d91635;
+        --ink: #1f2329;
+        --muted: #747982;
+        --line: #e7e9ee;
+        --surface: #ffffff;
+        --page: #f7f8fb;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 18% 14%, rgba(255, 36, 66, 0.12), transparent 26rem),
+          linear-gradient(180deg, #fff 0%, var(--page) 100%);
+      }
+
+      main {
+        display: grid;
+        min-height: 100vh;
+        place-items: start center;
+        padding: clamp(96px, 22vh, 190px) 18px 90px;
+      }
+
+      .search-shell {
+        width: min(720px, 100%);
+        text-align: center;
+      }
+
+      .brand {
+        margin: 0 0 18px;
+        color: var(--red);
+        font-size: clamp(36px, 9vw, 68px);
+        font-weight: 800;
+        line-height: 1.05;
+      }
+
+      .search-form {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        width: 100%;
+        min-height: 62px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface);
+        box-shadow: 0 18px 52px rgba(31, 35, 41, 0.1);
+      }
+
+      .search-form:focus-within {
+        border-color: rgba(255, 36, 66, 0.52);
+        box-shadow:
+          0 18px 52px rgba(31, 35, 41, 0.12),
+          0 0 0 5px rgba(255, 36, 66, 0.1);
+      }
+
+      .search-input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        padding: 0 10px 0 22px;
+        color: var(--ink);
+        background: transparent;
+        font-size: 19px;
+      }
+
+      .search-input::placeholder {
+        color: var(--muted);
+      }
+
+      .search-button {
+        display: inline-grid;
+        min-width: 112px;
+        min-height: 46px;
+        place-items: center;
+        border: 0;
+        border-radius: 999px;
+        color: white;
+        background: var(--red);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .search-button:hover {
+        background: var(--red-dark);
+      }
+
+      .search-button:focus-visible {
+        outline: 3px solid rgba(255, 36, 66, 0.28);
+        outline-offset: 3px;
+      }
+
+      .search-prompt {
+        margin: 0 0 28px;
+        color: var(--red);
+        font-size: 21px;
+        font-weight: 650;
+      }
+
+      .history {
+        width: 100%;
+        margin-top: 28px;
+        text-align: left;
+      }
+
+      .history-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+
+      .history-title {
+        flex: 1;
+        min-width: 0;
+        color: #8a8d94;
+        font-size: 18px;
+        font-weight: 500;
+        line-height: 1.35;
+      }
+
+      .icon-button {
+        display: inline-grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        color: #5d6168;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .icon-button:hover {
+        background: rgba(31, 35, 41, 0.06);
+      }
+
+      .icon-button:focus-visible {
+        outline: 3px solid rgba(255, 36, 66, 0.24);
+        outline-offset: 2px;
+      }
+
+      .history-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 14px;
+        max-height: 124px;
+        overflow: hidden;
+        transition: max-height 180ms ease;
+      }
+
+      .history-list.is-expanded {
+        max-height: 320px;
+      }
+
+      .history-item {
+        display: inline-flex;
+        align-items: center;
+        max-width: min(330px, 100%);
+        height: 42px;
+        border-radius: 999px;
+        background: rgba(31, 35, 41, 0.055);
+        overflow: hidden;
+      }
+
+      .history-item:hover {
+        background: rgba(255, 36, 66, 0.09);
+      }
+
+      .history-chip {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        height: 100%;
+        padding: 0 12px 0 22px;
+        color: #4f535a;
+        font-size: 16px;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .history-chip:hover {
+        color: var(--red);
+      }
+
+      .history-chip:focus-visible {
+        outline: 3px solid rgba(255, 36, 66, 0.22);
+        outline-offset: 3px;
+      }
+
+      .history-delete {
+        display: inline-grid;
+        flex: 0 0 auto;
+        width: 34px;
+        height: 34px;
+        margin-right: 4px;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        color: #8a8d94;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .history-delete:hover {
+        color: var(--red);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .history-delete:focus-visible {
+        outline: 3px solid rgba(255, 36, 66, 0.22);
+        outline-offset: 1px;
+      }
+
+      .history-empty {
+        margin: 0;
+        color: #9da1a9;
+        font-size: 16px;
+      }
+
+      .history-more {
+        flex: 0 0 auto;
+        padding: 0;
+      }
+
+      .history-more svg {
+        transition: transform 180ms ease;
+      }
+
+      .history-more[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+      }
+
+      .credit {
+        position: fixed;
+        right: 18px;
+        bottom: 24px;
+        left: 18px;
+        margin: 0;
+        color: #8a8d94;
+        font-size: 14px;
+        line-height: 1.6;
+        text-align: center;
+      }
+
+      .credit-link {
+        color: #2563eb;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .credit-link:hover {
+        text-decoration: underline;
+      }
+
+      .credit-link:focus-visible {
+        outline: 3px solid rgba(37, 99, 235, 0.24);
+        outline-offset: 3px;
+      }
+
+      @media (max-width: 520px) {
+        main {
+          padding-top: 15vh;
+        }
+
+        .brand {
+          margin-bottom: 18px;
+        }
+
+        .search-form {
+          grid-template-columns: 1fr 54px;
+          min-height: 58px;
+          gap: 6px;
+          padding: 6px;
+        }
+
+        .search-input {
+          padding-left: 16px;
+          font-size: 17px;
+        }
+
+        .search-button {
+          min-width: 54px;
+          min-height: 46px;
+          font-size: 0;
+        }
+
+        .search-button::before {
+          content: "搜";
+          font-size: 17px;
+        }
+
+        .search-prompt {
+          margin: 0 0 24px;
+          font-size: 19px;
+        }
+
+        .history {
+          margin-top: 24px;
+        }
+
+        .history-title {
+          font-size: 16px;
+        }
+
+        .history-list {
+          gap: 10px;
+          max-height: 106px;
+        }
+
+        .history-chip {
+          font-size: 14px;
+        }
+
+        .history-item {
+          height: 40px;
+          max-width: 100%;
+        }
+
+        .history-delete {
+          width: 32px;
+          height: 32px;
+        }
+
+        .credit {
+          bottom: 18px;
+          font-size: 13px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="search-shell" aria-label="小红书搜索">
+        <h1 class="brand">小红书</h1>
+        <p class="search-prompt">你现在要搜什么？</p>
+        <form class="search-form" id="searchForm" autocomplete="off">
+          <input
+            class="search-input"
+            id="searchInput"
+            name="keyword"
+            type="search"
+            placeholder="搜索小红书"
+            aria-label="搜索小红书"
+            autofocus
+          />
+          <button class="search-button" type="submit" aria-label="搜索">搜索</button>
+        </form>
+        <section class="history" aria-label="搜索记录">
+          <div class="history-header">
+            <div class="history-title">历史记录</div>
+            <button class="icon-button" id="clearHistory" type="button" aria-label="清空搜索记录" title="清空搜索记录">
+              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 1.86H8A2 2 0 0 1 6 20L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="history-list" id="historyList"></div>
+        </section>
+        <p class="credit">
+          Made by
+          <a
+            class="credit-link"
+            href="https://www.xiaohongshu.com/user/profile/624c0fa0000000001000ffa2"
+            target="_blank"
+            rel="noopener noreferrer"
+          >小樊</a
+          >；欢迎找我交流~
+        </p>
+      </section>
+    </main>
+
+    <script>
+      const form = document.querySelector("#searchForm");
+      const input = document.querySelector("#searchInput");
+      const historyList = document.querySelector("#historyList");
+      const clearHistoryButton = document.querySelector("#clearHistory");
+      const storageKey = "xiaohongshu-search-history";
+      const maxHistoryItems = 12;
+      const searchUrlConfig = {
+        origin: "https://www.xiaohongshu.com",
+        pathname: "/search_result",
+        keywordParam: "keyword",
+        fixedParams: {
+          source: "web_explore_feed",
+        },
+      };
+      let isHistoryExpanded = false;
+
+      function makeSearchUrl(keyword) {
+        const url = new URL(searchUrlConfig.pathname, searchUrlConfig.origin);
+        const params = new URLSearchParams(searchUrlConfig.fixedParams);
+        params.set(searchUrlConfig.keywordParam, keyword);
+        url.search = params.toString();
+
+        return url.toString();
+      }
+
+      function readHistory() {
+        try {
+          const value = localStorage.getItem(storageKey);
+          const parsed = JSON.parse(value || "[]");
+          return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function writeHistory(items) {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(items));
+        } catch {
+          return;
+        }
+      }
+
+      function saveSearch(keyword) {
+        const history = readHistory();
+        const normalized = keyword.trim();
+        const nextHistory = [
+          normalized,
+          ...history.filter((item) => item !== normalized),
+        ].slice(0, maxHistoryItems);
+
+        writeHistory(nextHistory);
+      }
+
+      function deleteHistoryItem(keyword) {
+        const nextHistory = readHistory().filter((item) => item !== keyword);
+        writeHistory(nextHistory);
+        renderHistory();
+        input.focus();
+      }
+
+      function search(keyword) {
+        const normalized = keyword.trim();
+
+        if (!normalized) {
+          input.focus();
+          return;
+        }
+
+        saveSearch(normalized);
+        window.location.href = makeSearchUrl(normalized);
+      }
+
+      function createHistoryChip(keyword) {
+        const item = document.createElement("span");
+        item.className = "history-item";
+
+        const chip = document.createElement("a");
+        chip.className = "history-chip";
+        chip.href = makeSearchUrl(keyword);
+        chip.textContent = keyword;
+        chip.title = keyword;
+        chip.addEventListener("click", () => {
+          saveSearch(keyword);
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "history-delete";
+        deleteButton.type = "button";
+        deleteButton.setAttribute("aria-label", `删除搜索记录：${keyword}`);
+        deleteButton.title = "删除这条记录";
+        deleteButton.innerHTML = `
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+        `;
+        deleteButton.addEventListener("click", () => {
+          deleteHistoryItem(keyword);
+        });
+
+        item.append(chip, deleteButton);
+        return item;
+      }
+
+      function createMoreButton() {
+        const button = document.createElement("button");
+        button.className = "icon-button history-more";
+        button.type = "button";
+        button.setAttribute("aria-label", isHistoryExpanded ? "收起搜索记录" : "展开搜索记录");
+        button.setAttribute("aria-expanded", String(isHistoryExpanded));
+        button.innerHTML = `
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        `;
+        button.addEventListener("click", () => {
+          isHistoryExpanded = !isHistoryExpanded;
+          renderHistory();
+        });
+
+        return button;
+      }
+
+      function renderHistory() {
+        const history = readHistory();
+        historyList.innerHTML = "";
+        historyList.classList.toggle("is-expanded", isHistoryExpanded);
+        clearHistoryButton.hidden = history.length === 0;
+
+        if (history.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "history-empty";
+          empty.textContent = "暂无搜索记录";
+          historyList.append(empty);
+          return;
+        }
+
+        const visibleHistory = isHistoryExpanded ? history : history.slice(0, 5);
+
+        visibleHistory.forEach((keyword) => {
+          historyList.append(createHistoryChip(keyword));
+        });
+
+        if (history.length > 5) {
+          historyList.append(createMoreButton());
+        }
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        search(input.value);
+      });
+
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.isComposing) {
+          event.preventDefault();
+          search(input.value);
+        }
+      });
+
+      clearHistoryButton.addEventListener("click", () => {
+        writeHistory([]);
+        isHistoryExpanded = false;
+        renderHistory();
+        input.focus();
+      });
+
+      renderHistory();
+    </script>
+  </body>
+</html>
